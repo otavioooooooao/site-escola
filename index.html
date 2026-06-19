@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Académico - Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Acesso ao Portal Académico</h2>
+        
+        <div class="auth-tabs">
+            <button type="button" id="btn-tab-login" class="auth-tab-btn active" onclick="toggleAuthMode('login')">Entrar</button>
+            <button type="button" id="btn-tab-register" class="auth-tab-btn" onclick="toggleAuthMode('register')">Criar Conta</button>
+        </div>
+
+        <div id="form-login">
+            <div class="form-group">
+                <label for="login-user">Utilizador / Nome Completo:</label>
+                <input type="text" id="login-user" placeholder="Digite o seu utilizador">
+            </div>
+            <div class="form-group">
+                <label for="login-pass">Palavra-passe:</label>
+                <input type="password" id="login-pass" placeholder="Digite a sua senha">
+            </div>
+            <button type="button" onclick="executarLogin()">Entrar no Sistema</button>
+        </div>
+
+        <div id="form-register" style="display: none;">
+            <div class="form-group">
+                <label for="reg-user">Nome Completo:</label>
+                <input type="text" id="reg-user" placeholder="Ex: Amanda Duarte Miranda">
+            </div>
+            <div class="form-group">
+                <label for="reg-pass">Palavra-passe:</label>
+                <input type="password" id="reg-pass" placeholder="Crie uma senha">
+            </div>
+            <div class="form-group">
+                <label for="reg-tipo">Tipo de Conta:</label>
+                <select id="reg-tipo">
+                    <option value="aluno">Aluno</option>
+                    <option value="professor">Professor</option>
+                </select>
+            </div>
+            <button type="button" onclick="executarRegisto()">Finalizar Registo</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleAuthMode(modo) {
+        if (modo === 'login') {
+            document.getElementById('form-login').style.display = 'block';
+            document.getElementById('form-register').style.display = 'none';
+            document.getElementById('btn-tab-login').classList.add('active');
+            document.getElementById('btn-tab-register').classList.remove('active');
+        } else {
+            document.getElementById('form-login').style.display = 'none';
+            document.getElementById('form-register').style.display = 'block';
+            document.getElementById('btn-tab-login').classList.remove('active');
+            document.getElementById('btn-tab-register').classList.add('active');
+        }
+    }
+
+    async function executarRegisto() {
+        const nome = document.getElementById('reg-user').value.trim();
+        const senha = document.getElementById('reg-pass').value.trim();
+        const tipo = document.getElementById('reg-tipo').value;
+
+        if (!nome || !senha) return alert("Preencha todos os campos.");
+
+        try {
+            const response = await fetch('http://localhost:3000/api/registo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, senha, tipo })
+            });
+            const dados = await response.json();
+            if (dados.erro) return alert(dados.erro);
+            
+            alert("Registado com sucesso no SGBD!");
+            toggleAuthMode('login');
+        } catch (e) { alert("Erro ao ligar ao servidor."); }
+    }
+
+    async function executarLogin() {
+        const nome = document.getElementById('login-user').value.trim();
+        const senha = document.getElementById('login-pass').value.trim();
+
+        try {
+            const response = await fetch('http://localhost:3000/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, senha })
+            });
+            
+            if (response.status === 401) return alert("Utilizador ou senha incorretos!");
+            const user = await response.json();
+
+            localStorage.setItem('suap_logged', JSON.stringify(user));
+            window.location.href = user.tipo === 'professor' ? 'professor.html' : 'aluno.html';
+        } catch (e) { alert("Servidor offline!"); }
+    }
+</script>
+</body>
+</html>

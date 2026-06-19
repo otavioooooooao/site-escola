@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Professor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>Sistema de Gestão Académica</h1>
+    <div class="user-logged-info">
+        Olá, Prof. <span id="user-display-name">Nome</span> | 
+        <button type="button" class="btn-logout" onclick="fazerLogout()">Sair 🚪</button>
+    </div>
+</header>
+
+<div class="main-container">
+    <div class="grid-layout">
+        <div class="card">
+            <h2>Lançar Notas (Área do Docente)</h2>
+            <div class="form-group">
+                <label for="prof-aluno-select">Selecionar Aluno Registado:</label>
+                <select id="prof-aluno-select"></select>
+            </div>
+            <div class="form-group">
+                <label for="prof-materia">Componente Curricular:</label>
+                <input type="text" id="prof-materia" placeholder="Ex: Biologia Celular">
+            </div>
+            <div class="form-group">
+                <label for="prof-n1">Nota N1:</label>
+                <input type="number" id="prof-n1" min="0" max="10" step="0.1" placeholder="0.0">
+            </div>
+            <div class="form-group">
+                <label for="prof-n2">Nota N2:</label>
+                <input type="number" id="prof-n2" min="0" max="10" step="0.1" placeholder="0.0">
+            </div>
+            <button type="button" onclick="professorSalvarNota()">Lançar Nota no Sistema</button>
+        </div>
+
+        <div class="card">
+            <h2>Todas as Notas Lançadas</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Estudante</th>
+                        <th>Disciplina</th>
+                        <th>Média</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-professor"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const logado = JSON.parse(localStorage.getItem('suap_logged'));
+    if (!logado || logado.tipo !== 'professor') window.location.href = 'index.html';
+    else document.getElementById('user-display-name').innerText = logado.nome;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        atualizarSelectAlunos();
+        atualizarTabelaProfessor();
+    });
+
+    async function atualizarSelectAlunos() {
+        const select = document.getElementById('prof-aluno-select');
+        const response = await fetch('http://localhost:3000/api/alunos');
+        const alunos = await response.json();
+
+        if (alunos.length === 0) {
+            select.innerHTML = '<option value="">Nenhum aluno no SGBD</option>';
+            return;
+        }
+        select.innerHTML = '';
+        alunos.forEach(aluno => {
+            select.innerHTML += `<option value="${aluno.nome}">${aluno.nome}</option>`;
+        });
+    }
+
+    async function professorSalvarNota() {
+        const aluno = document.getElementById('prof-aluno-select').value;
+        const materia = document.getElementById('prof-materia').value.trim();
+        const n1 = parseFloat(document.getElementById('prof-n1').value);
+        const n2 = parseFloat(document.getElementById('prof-n2').value);
+
+        if (!aluno || !materia || isNaN(n1) || isNaN(n2)) return alert("Preencha todos os dados.");
+
+        await fetch('http://localhost:3000/api/notas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ aluno, materia, n1, n2 })
+        });
+
+        document.getElementById('prof-materia').value = '';
+        document.getElementById('prof-n1').value = '';
+        document.getElementById('prof-n2').value = '';
+        atualizarTabelaProfessor();
+    }
+
+    async function atualizarTabelaProfessor() {
+        const tabela = document.getElementById('tabela-professor');
+        tabela.innerHTML = '';
+        const response = await fetch('http://localhost:3000/api/notas');
+        const notas = await response.json();
+
+        notas.forEach(item => {
+            tabela.innerHTML += `
+                <tr>
+                    <td>${item.aluno}</td>
+                    <td>${item.materia}</td>
+                    <td><strong>${item.media.toFixed(1)}</strong></td>
+                    <td><button class="btn-delete" onclick="deletarNota(${item.id})">🗑️</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    async function deletarNota(id) {
+        await fetch(`http://localhost:3000/api/notas/${id}`, { method: 'DELETE' });
+        atualizarTabelaProfessor();
+    }
+
+    function fazerLogout() {
+        localStorage.removeItem('suap_logged');
+        window.location.href = 'index.html';
+    }
+</script>
+</body>
+</html>
