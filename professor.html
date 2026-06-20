@@ -15,8 +15,10 @@
 
     <h3>Lançar Nova Nota</h3>
     <div class="form-group">
-        <label>Nome do Aluno:</label>
-        <input type="text" id="nota-aluno" placeholder="Ex: Amanda Duarte">
+        <label>Selecionar Aluno Registado:</label>
+        <select id="nota-aluno">
+            <option value="">Carregando alunos...</option>
+        </select>
     </div>
     <div class="form-group">
         <label>Matéria / Disciplina:</label>
@@ -35,7 +37,7 @@
     <button type="button" onclick="professorSalvarNota()">Lançar Nota no Sistema</button>
 
     <hr>
-    <h3>Notas Lançadas no Sistema</h3>
+    <h3>Notas Lançadas</h3>
     <table>
         <thead>
             <tr>
@@ -48,32 +50,86 @@
                 <th>Ações</th>
             </tr>
         </thead>
-        <tbody id="tabela-notas-professor">
-            </tbody>
+        <tbody id="tabela-notas-professor"></tbody>
     </table>
+
+    <hr>
+    <h3>Todos os Alunos Cadastrados na Escola</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome do Aluno</th>
+                <th>Tipo de Conta</th>
+            </tr>
+        </thead>
+        <tbody id="tabela-todos-alunos">
+            <tr><td colspan="3">Carregando lista...</td></tr>
+        </tbody>
+    </table>
+
     <br>
     <button onclick="fazerLogout()" style="background-color: #cc0000;">Sair do Sistema</button>
 </div>
 
 <script>
-    const API_URL = 'https://site-escola-ox6c.onrender.com/api/notas';
+    const API_BASE = 'https://site-escola-ox6c.onrender.com/api';
 
-    // Executa assim que a página abre para listar as notas existentes
     window.onload = function() {
         const user = JSON.parse(localStorage.getItem('suap_logged'));
         if (!user || user.tipo !== 'professor') {
-            alert("Acesso negado! Faça login como professor.");
+            alert("Acesso negado!");
             window.location.href = 'index.html';
             return;
         }
+        carregarAlunosCadastrados();
         carregarNotas();
     };
 
+    // Nova função que vai buscar os alunos reais registados no banco
+    async function carregarAlunosCadastrados() {
+        try {
+            // Criaremos esta rota no server.js para listar os utilizadores tipo aluno
+            const response = await fetch(`${API_BASE}/alunos`);
+            const alunos = await response.json();
+            
+            const select = document.getElementById('nota-aluno');
+            const tbodyAlunos = document.getElementById('tabela-todos-alunos');
+            
+            select.innerHTML = '<option value="">-- Selecione um Aluno --</option>';
+            tbodyAlunos.innerHTML = '';
+
+            if(alunos.length === 0) {
+                select.innerHTML = '<option value="">Nenhum aluno cadastrado no sistema</option>';
+                tbodyAlunos.innerHTML = '<tr><td colspan="3" style="text-align:center;">Nenhum aluno encontrado. Se criares uma conta de aluno no ecrã inicial, ela aparece aqui!</td></tr>';
+                return;
+            }
+
+            alunos.forEach(aluno => {
+                // Adiciona no Dropdown de escolha
+                const option = document.createElement('option');
+                option.value = aluno.nome;
+                option.textContent = aluno.nome;
+                select.appendChild(option);
+
+                // Adiciona na tabela de consulta em baixo
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${aluno.id}</td>
+                    <td><strong>${aluno.nome}</strong></td>
+                    <td><span style="background:#e2e8f0; padding:3px 8px; border-radius:12px; font-size:12px;">${aluno.tipo}</span></td>
+                `;
+                tbodyAlunos.appendChild(tr);
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     async function carregarNotas() {
         try {
-            const response = await fetch(API_URL);
+            const response = await fetch(`${API_BASE}/notas`);
             const notas = await response.json();
-            
             const tbody = document.getElementById('tabela-notas-professor');
             tbody.innerHTML = '';
 
@@ -90,69 +146,37 @@
                 `;
                 tbody.appendChild(tr);
             });
-        } catch (e) {
-            console.error("Erro ao carregar notas:", e);
-        }
+        } catch (e) {}
     }
 
     async function professorSalvarNota() {
-        const aluno = document.getElementById('nota-aluno').value.trim();
+        const aluno = document.getElementById('nota-aluno').value;
         const materia = document.getElementById('nota-materia').value.trim();
         const n1 = document.getElementById('nota-n1').value;
         const n2 = document.getElementById('nota-n2').value;
 
         if (!aluno || !materia || n1 === '' || n2 === '') {
-            return alert("Por favor, preencha todos os campos e notas.");
+            return alert("Por favor, preencha todos os campos.");
         }
 
         try {
-            const response = await fetch(API_URL, {
+            const response = await fetch(`${API_BASE}/notas`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    aluno,
-                    materia,
-                    n1: parseFloat(n1),
-                    n2: parseFloat(n2)
-                })
+                body: JSON.stringify({ aluno, materia, n1: parseFloat(n1), n2: parseFloat(n2) })
             });
-
             const dados = await response.json();
-
-            if (!response.ok) {
-                return alert(dados.erro || "Erro ao salvar a nota.");
-            }
-
-            alert(dados.mensagem || "Nota processada com sucesso!");
-            
-            // Limpa os campos do formulário
-            document.getElementById('nota-aluno').value = '';
-            document.getElementById('nota-materia').value = '';
-            document.getElementById('nota-n1').value = '';
-            document.getElementById('nota-n2').value = '';
-
-            // Atualiza a tabela na hora
+            alert(dados.mensagem || "Nota processada!");
             carregarNotas();
-
         } catch (e) {
-            alert("Erro de conexão com o servidor.");
+            alert("Erro de conexão.");
         }
     }
 
     async function apagarNota(id) {
-        if (!confirm("Tem certeza que deseja apagar esta nota?")) return;
-
-        try {
-            const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-            if (response.ok) {
-                alert("Nota excluída!");
-                carregarNotas();
-            } else {
-                alert("Erro ao apagar nota.");
-            }
-        } catch (e) {
-            alert("Erro de conexão.");
-        }
+        if (!confirm("Apagar nota?")) return;
+        await fetch(`${API_BASE}/notas/${id}`, { method: 'DELETE' });
+        carregarNotas();
     }
 
     function fazerLogout() {

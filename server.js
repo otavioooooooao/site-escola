@@ -34,6 +34,17 @@ db.serialize(() => {
     )`);
 });
 
+// Rota para buscar apenas utilizadores do tipo aluno (para o painel do professor)
+app.get('/api/alunos', (req, res) => {
+    db.all("SELECT id, nome, tipo FROM usuarios WHERE tipo = 'aluno'", [], (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ erro: "Erro ao buscar alunos." });
+        }
+        res.json(rows);
+    });
+});
+
 // Rota de Registo com Trava de Segurança para Professor
 app.post('/api/registo', (req, res) => {
     const { nome, senha, tipo, chaveSecreta } = req.body;
@@ -139,7 +150,7 @@ app.delete('/api/notas/:id', (req, res) => {
     });
 });
 
-// Porta do Servidor para o Render (usa a porta do ambiente ou a 10000)
+// Porta do Servidor para o Render
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`Servidor a rodar na porta ${PORT}`);
