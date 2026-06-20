@@ -108,24 +108,37 @@
         } catch (e) { alert("Erro ao ligar ao servidor."); }
     }
 
-    async function executarLogin() {
-        const nome = document.getElementById('login-user').value.trim();
-        const senha = document.getElementById('login-pass').value.trim();
+   async function executarLogin() {
+    const nome = document.getElementById('login-user').value.trim();
+    const senha = document.getElementById('login-pass').value;
 
-        try {
-            const response = await fetch('https://site-escola-ox6c.onrender.com/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome, senha })
-            });
-            
-            if (response.status === 401) return alert("Utilizador ou senha incorretos!");
-            const user = await response.json();
+    if (!nome || !senha) return alert("Preencha todos os campos!");
 
-            localStorage.setItem('suap_logged', JSON.stringify(user));
-            window.location.href = user.tipo === 'professor' ? 'professor.html' : 'aluno.html';
-        } catch (e) { alert("Servidor offline!"); }
+    try {
+        const response = await fetch('https://site-escola-ox6c.onrender.com/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, senha })
+        });
+
+        if (response.status === 401) {
+            return alert("Utilizador ou senha incorretos!");
+        }
+
+        // ISTO DEVE FICAR NA MESMA LINHA COMPLETAMENTE:
+        const user = await response.json();
+
+        localStorage.setItem('suap_logged', JSON.stringify(user));
+        
+        if (user.tipo === 'professor') {
+            window.location.href = 'professor.html';
+        } else {
+            window.location.href = 'aluno.html';
+        }
+    } catch (e) {
+        alert("Servidor offline ou erro de conexão!");
     }
+}
 </script>
 </body>
 </html>

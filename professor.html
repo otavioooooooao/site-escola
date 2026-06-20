@@ -162,14 +162,21 @@
     }
 
     async function professorSalvarNota() {
-        const aluno = document.getElementById('nota-aluno').value;
-        const materia = document.getElementById('nota-materia').value.trim();
-        const n1 = document.getElementById('nota-n1').value;
-        const n2 = document.getElementById('nota-n2').value;
+    const aluno = document.getElementById('nota-aluno').value;
+    const materia = document.getElementById('nota-materia').value.trim();
+    
+    // Captura o texto e troca qualquer vírgula por ponto antes de converter
+    let n1Raw = document.getElementById('nota-n1').value.toString().replace(',', '.');
+    let n2Raw = document.getElementById('nota-n2').value.toString().replace(',', '.');
 
-        if (!aluno || !materia || n1 === '' || n2 === '') {
-            return alert("Por favor, preencha todos os campos.");
-        }
+    const n1 = parseFloat(n1Raw);
+    const n2 = parseFloat(n2Raw);
+
+    if (!aluno || !materia || isNaN(n1) || isNaN(n2)) {
+        return alert("Por favor, selecione o aluno e digite notas válidas.");
+    }
+    
+    // ... resto do teu fetch igual abaixo ...
 
         try {
             const response = await fetch(`${API_BASE}/notas`, {
