@@ -68,7 +68,7 @@
 
     async function atualizarSelectAlunos() {
         const select = document.getElementById('prof-aluno-select');
-        const response = await fetch('http://localhost:3000/api/alunos');
+        const response = await fetch('https://site-escola-ox6c.onrender.com/api/alunos');
         const alunos = await response.json();
 
         if (alunos.length === 0) {
@@ -89,7 +89,7 @@
 
         if (!aluno || !materia || isNaN(n1) || isNaN(n2)) return alert("Preencha todos os dados.");
 
-        await fetch('http://localhost:3000/api/notas', {
+        await fetch('https://site-escola-ox6c.onrender.com/api/notas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ aluno, materia, n1, n2 })
@@ -104,7 +104,7 @@
     async function atualizarTabelaProfessor() {
         const tabela = document.getElementById('tabela-professor');
         tabela.innerHTML = '';
-        const response = await fetch('http://localhost:3000/api/notas');
+        const response = await fetch('https://site-escola-ox6c.onrender.com/api/notas');
         const notas = await response.json();
 
         notas.forEach(item => {
@@ -120,7 +120,10 @@
     }
 
     async function deletarNota(id) {
-        await fetch(`http://localhost:3000/api/notas/${id}`, { method: 'DELETE' });
+        if (!confirm("Tem a certeza que deseja apagar esta nota?")) return;
+        await fetch(`https://site-escola-ox6c.onrender.com/api/notas/${id}`, {
+            method: 'DELETE'
+        });
         atualizarTabelaProfessor();
     }
 
