@@ -3,84 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal do Aluno</title>
+    <title>Portal do Aluno - Notas</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <header>
-        <h1>Portal do Aluno - Painel de Notas</h1>
+        <h1>Portal do Aluno 🎓</h1>
         <div class="user-logged-info">
-            Olá, <span id="user-display-name">Nome</span> |
-            <button type="button" class="btn-logout" onclick="fazerLogout()">Sair 🚪</button>
+            <p>Olá, <span id="nome-aluno-header">Aluno</span></p>
+            <button class="btn-logout" onclick="fazerLogout()">Sair 🚪</button>
         </div>
     </header>
 
-    <div class="main-container">
+    <main class="main-container">
         <div class="card">
-            <div class="boletim-header">
-                <h2>Meu Boletim Escolar Oficial</h2>
+            <h2>Meu Boletim Escolar Oficial</h2>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Disciplina / Matéria</th>
+                            <th>Nota 1</th>
+                            <th>Nota 2</th>
+                            <th>Média Final</th>
+                            <th>Situação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-notas-aluno">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted);">
+                                Carregando suas notas do sistema...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Disciplina</th>
-                        <th>N1</th>
-                        <th>N2</th>
-                        <th>Média</th>
-                        <th>Situação</th>
-                    </tr>
-                </thead>
-                <tbody id="tabela-aluno"></tbody>
-            </table>
         </div>
-    </div>
+    </main>
 
-    <script>
-        const logado = JSON.parse(localStorage.getItem('suap_logged'));
-        if (!logado || logado.tipo !== 'aluno') {
+<script>
+    const API_BASE = 'https://site-escola-ox6c.onrender.com/api';
+
+    window.onload = function() {
+        // Recupera os dados do usuário guardados no login
+        const user = JSON.parse(localStorage.getItem('suap_logged'));
+        
+        // Proteção de página: Se não houver login ou não for aluno, expulsa
+        if (!user || !user.nome) {
+            alert("Sessão inválida! Por favor, faça login novamente.");
             window.location.href = 'index.html';
-        } else {
-            document.getElementById('user-display-name').innerText = logado.nome;
+            return;
         }
 
-        document.addEventListener("DOMContentLoaded", atualizarBoletimAluno);
+        // Exibe o nome do aluno no cabeçalho
+        document.getElementById('nome-aluno-header').textContent = user.nome;
 
-        async function atualizarBoletimAluno() {
-            const tabela = document.getElementById('tabela-aluno');
-            tabela.innerHTML = '';
+        // Dispara a busca das notas passando o nome correto como filtro
+        carregarNotasDoAluno(user.nome);
+    };
 
-            try {
-                // Passa o nome do aluno como parâmetro para buscar apenas as notas dele
-                const response = await fetch(`https://site-escola-ox6c.onrender.com/api/notas/aluno/${encodeURIComponent(logado.nome)}`);
-                const minhasNotas = await response.json();
-
-                if (minhasNotas.length === 0) {
-                    tabela.innerHTML = `<tr><td colspan="5" style="text-align:center; color: #777;">Nenhuma nota lançada para si no SGBD ainda.</td></tr>`;
-                    return;
-                }
-
-                minhasNotas.forEach(item => {
-                    const badgeClass = item.situacao === "APROVADO" ? "badge-aprovado" : "badge-reprovado";
-                    tabela.innerHTML += `
-                    <tr>
-                        <td><strong>${item.materia}</strong></td>
-                        <td>${item.n1.toFixed(1)}</td>
-                        <td>${item.n2.toFixed(1)}</td>
-                        <td><strong>${item.media.toFixed(1)}</strong></td>
-                        <td><span class="badge ${badgeClass}">${item.situacao}</span></td>
-                    </tr>
-                `;
-                });
-            } catch (error) {
-                tabela.innerHTML = `<tr><td colspan="5" style="text-align:center; color: red;">Erro ao carregar dados do SGBD.</td></tr>`;
+    async function carregarNotasDoAluno(nomeAluno) {
+        const tbody = document.getElementById('tabela-notas-aluno');
+        
+        try {
+            // Envia o parâmetro ?aluno=Nome do Aluno para a API
+            const response = await fetch(`${API_BASE}/notas?aluno=${encodeURIComponent(nomeAluno)}`);
+            
+            if (!response.ok) {
+                throw new Error("Erro na resposta do servidor");
             }
-        }
 
-        function fazerLogout() {
-            localStorage.removeItem('suap_logged');
-            window.location.href = 'index.html';
+            const notas = await response.json();
+            tbody.innerHTML = '';
+
+            if (notas.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">
+                            Nenhuma nota foi lançada para você ainda neste período.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            // Popula a tabela com as notas encontradas
+            notas.forEach(nota => {
+                const tr = document.createElement('tr');
+                const badgeClass = nota.situacao === 'APROVADO' ? 'badge-aprovado' : 'badge-reprovado';
+                
+                tr.innerHTML = `
+                    <td><strong>${nota.materia}</strong></td>
+                    <td>${nota.n1.toFixed(1)}</td>
+                    <td>${nota.n2.toFixed(1)}</td>
+                    <td><strong>${nota.media.toFixed(1)}</strong></td>
+                    <td><span class="badge ${badgeClass}">${nota.situacao}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--danger-color); font-weight: 600; padding: 20px;">
+                        ⚠️ Erro ao carregar dados do SGBD. Verifique se o servidor está online.
+                    </td>
+                </tr>`;
         }
-    </script>
+    }
+
+    function fazerLogout() {
+        localStorage.removeItem('suap_logged');
+        window.location.href = 'index.html';
+    }
+</script>
 </body>
 </html>
