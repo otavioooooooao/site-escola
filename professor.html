@@ -8,69 +8,79 @@
 </head>
 <body>
 
-<div class="panel-container">
-    <h2>Painel do Docente 🏫</h2>
-    <p>Bem-vindo, Professor(a).</p>
-    <hr>
-
-    <h3>Lançar Nova Nota</h3>
-    <div class="form-group">
-        <label>Selecionar Aluno Registado:</label>
-        <select id="nota-aluno">
-            <option value="">Carregando alunos...</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Matéria / Disciplina:</label>
-        <input type="text" id="nota-materia" placeholder="Ex: Matemática">
-    </div>
-    <div class="form-inline">
-        <div class="form-group">
-            <label>Nota 1:</label>
-            <input type="number" id="nota-n1" step="0.1" min="0" max="10" placeholder="0.0">
+    <header>
+        <h1>Painel do Docente 🏫</h1>
+        <div class="user-logged-info">
+            <p>Bem-vindo, <span>Professor(a)</span></p>
+            <button class="btn-logout" onclick="fazerLogout()">Sair do Sistema</button>
         </div>
-        <div class="form-group">
-            <label>Nota 2:</label>
-            <input type="number" id="nota-n2" step="0.1" min="0" max="10" placeholder="0.0">
+    </header>
+
+    <main class="main-container">
+        <div class="grid-layout">
+            
+            <div class="card">
+                <h2>Lançar Nova Nota</h2>
+                <div class="form-group">
+                    <label>Selecionar Aluno Registado:</label>
+                    <select id="nota-aluno">
+                        <option value="">Carregando alunos...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Matéria / Disciplina:</label>
+                    <input type="text" id="nota-materia" placeholder="Ex: Matemática">
+                </div>
+                <div class="form-group">
+                    <label>Nota 1:</label>
+                    <input type="number" id="nota-n1" step="0.1" min="0" max="10" placeholder="0.0">
+                </div>
+                <div class="form-group">
+                    <label>Nota 2:</label>
+                    <input type="number" id="nota-n2" step="0.1" min="0" max="10" placeholder="0.0">
+                </div>
+                <button type="button" onclick="professorSalvarNota()">Lançar Nota no Sistema</button>
+            </div>
+
+            <div class="tables-column">
+                
+                <div class="card">
+                    <h2>Notas Lançadas</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aluno</th>
+                                <th>Matéria</th>
+                                <th>Nota 1</th>
+                                <th>Nota 2</th>
+                                <th>Média</th>
+                                <th>Situação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-notas-professor"></tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h2>Todos os Alunos Cadastrados na Escola</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome do Aluno</th>
+                                <th>Tipo de Conta</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-todos-alunos">
+                            <tr><td colspan="3">Carregando lista...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
         </div>
-    </div>
-    <button type="button" onclick="professorSalvarNota()">Lançar Nota no Sistema</button>
-
-    <hr>
-    <h3>Notas Lançadas</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Aluno</th>
-                <th>Matéria</th>
-                <th>Nota 1</th>
-                <th>Nota 2</th>
-                <th>Média</th>
-                <th>Situação</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody id="tabela-notas-professor"></tbody>
-    </table>
-
-    <hr>
-    <h3>Todos os Alunos Cadastrados na Escola</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nome do Aluno</th>
-                <th>Tipo de Conta</th>
-            </tr>
-        </thead>
-        <tbody id="tabela-todos-alunos">
-            <tr><td colspan="3">Carregando lista...</td></tr>
-        </tbody>
-    </table>
-
-    <br>
-    <button onclick="fazerLogout()" style="background-color: #cc0000;">Sair do Sistema</button>
-</div>
+    </main>
 
 <script>
     const API_BASE = 'https://site-escola-ox6c.onrender.com/api';
@@ -86,10 +96,8 @@
         carregarNotas();
     };
 
-    // Nova função que vai buscar os alunos reais registados no banco
     async function carregarAlunosCadastrados() {
         try {
-            // Criaremos esta rota no server.js para listar os utilizadores tipo aluno
             const response = await fetch(`${API_BASE}/alunos`);
             const alunos = await response.json();
             
@@ -99,30 +107,30 @@
             select.innerHTML = '<option value="">-- Selecione um Aluno --</option>';
             tbodyAlunos.innerHTML = '';
 
-            if(alunos.length === 0) {
-                select.innerHTML = '<option value="">Nenhum aluno cadastrado no sistema</option>';
-                tbodyAlunos.innerHTML = '<tr><td colspan="3" style="text-align:center;">Nenhum aluno encontrado. Se criares uma conta de aluno no ecrã inicial, ela aparece aqui!</td></tr>';
+            if (alunos.length === 0) {
+                select.innerHTML = '<option value="">Nenhum aluno cadastrado</option>';
+                tbodyAlunos.innerHTML = '<tr><td colspan="3" style="text-align:center;">Nenhum aluno encontrado.</td></tr>';
                 return;
             }
 
             alunos.forEach(aluno => {
-                // Adiciona no Dropdown de escolha
+                // Preenche o Select Dropdown
                 const option = document.createElement('option');
-                option.value = aluno.nome;
+                option.value = aluno.nome; // Corrigido para a propriedade vinda do SQLite
                 option.textContent = aluno.nome;
                 select.appendChild(option);
 
-                // Adiciona na tabela de consulta em baixo
+                // Preenche a Tabela de Baixo (Corrigido os undefined)
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${aluno.id}</td>
+                    <td>#${aluno.id}</td>
                     <td><strong>${aluno.nome}</strong></td>
-                    <td><span style="background:#e2e8f0; padding:3px 8px; border-radius:12px; font-size:12px;">${aluno.tipo}</span></td>
+                    <td><span class="badge" style="background-color: #cbd5e1; color: #1e293b;">${aluno.tipo.toUpperCase()}</span></td>
                 `;
                 tbodyAlunos.appendChild(tr);
             });
         } catch (e) {
-            console.error(e);
+            console.error("Erro ao carregar alunos:", e);
         }
     }
 
@@ -135,18 +143,22 @@
 
             notas.forEach(nota => {
                 const tr = document.createElement('tr');
+                const badgeClass = nota.situacao === 'APROVADO' ? 'badge-aprovado' : 'badge-reprovado';
+                
                 tr.innerHTML = `
                     <td>${nota.aluno}</td>
                     <td>${nota.materia}</td>
                     <td>${nota.n1.toFixed(1)}</td>
                     <td>${nota.n2.toFixed(1)}</td>
-                    <td>${nota.media.toFixed(1)}</td>
-                    <td style="color: ${nota.situacao === 'APROVADO' ? 'green' : 'red'}; font-weight: bold;">${nota.situacao}</td>
-                    <td><button onclick="apagarNota(${nota.id})" style="background-color: #ff3333; padding: 2px 8px;">🗑️</button></td>
+                    <td><strong>${nota.media.toFixed(1)}</strong></td>
+                    <td><span class="badge ${badgeClass}">${nota.situacao}</span></td>
+                    <td><button class="btn-delete" onclick="apagarNota(${nota.id})">🗑️</button></td>
                 `;
                 tbody.appendChild(tr);
             });
-        } catch (e) {}
+        } catch (e) {
+            console.error("Erro ao carregar notas:", e);
+        }
     }
 
     async function professorSalvarNota() {
@@ -167,6 +179,11 @@
             });
             const dados = await response.json();
             alert(dados.mensagem || "Nota processada!");
+            
+            document.getElementById('nota-materia').value = '';
+            document.getElementById('nota-n1').value = '';
+            document.getElementById('nota-n2').value = '';
+            
             carregarNotas();
         } catch (e) {
             alert("Erro de conexão.");
@@ -174,7 +191,7 @@
     }
 
     async function apagarNota(id) {
-        if (!confirm("Apagar nota?")) return;
+        if (!confirm("Remover esta nota permanentemente?")) return;
         await fetch(`${API_BASE}/notas/${id}`, { method: 'DELETE' });
         carregarNotas();
     }
