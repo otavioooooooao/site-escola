@@ -8,123 +8,151 @@
 </head>
 <body>
 
-<header>
-    <h1>Sistema de Gestão Académica</h1>
-    <div class="user-logged-info">
-        Olá, Prof. <span id="user-display-name">Nome</span> | 
-        <button type="button" class="btn-logout" onclick="fazerLogout()">Sair 🚪</button>
+<div class="panel-container">
+    <h2>Painel do Docente 🏫</h2>
+    <p>Bem-vindo, Professor(a).</p>
+    <hr>
+
+    <h3>Lançar Nova Nota</h3>
+    <div class="form-group">
+        <label>Nome do Aluno:</label>
+        <input type="text" id="nota-aluno" placeholder="Ex: Amanda Duarte">
     </div>
-</header>
-
-<div class="main-container">
-    <div class="grid-layout">
-        <div class="card">
-            <h2>Lançar Notas (Área do Docente)</h2>
-            <div class="form-group">
-                <label for="prof-aluno-select">Selecionar Aluno Registado:</label>
-                <select id="prof-aluno-select"></select>
-            </div>
-            <div class="form-group">
-                <label for="prof-materia">Componente Curricular:</label>
-                <input type="text" id="prof-materia" placeholder="Ex: Biologia Celular">
-            </div>
-            <div class="form-group">
-                <label for="prof-n1">Nota N1:</label>
-                <input type="number" id="prof-n1" min="0" max="10" step="0.1" placeholder="0.0">
-            </div>
-            <div class="form-group">
-                <label for="prof-n2">Nota N2:</label>
-                <input type="number" id="prof-n2" min="0" max="10" step="0.1" placeholder="0.0">
-            </div>
-            <button type="button" onclick="professorSalvarNota()">Lançar Nota no Sistema</button>
+    <div class="form-group">
+        <label>Matéria / Disciplina:</label>
+        <input type="text" id="nota-materia" placeholder="Ex: Matemática">
+    </div>
+    <div class="form-inline">
+        <div class="form-group">
+            <label>Nota 1:</label>
+            <input type="number" id="nota-n1" step="0.1" min="0" max="10" placeholder="0.0">
         </div>
-
-        <div class="card">
-            <h2>Todas as Notas Lançadas</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Estudante</th>
-                        <th>Disciplina</th>
-                        <th>Média</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="tabela-professor"></tbody>
-            </table>
+        <div class="form-group">
+            <label>Nota 2:</label>
+            <input type="number" id="nota-n2" step="0.1" min="0" max="10" placeholder="0.0">
         </div>
     </div>
+    <button type="button" onclick="professorSalvarNota()">Lançar Nota no Sistema</button>
+
+    <hr>
+    <h3>Notas Lançadas no Sistema</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Aluno</th>
+                <th>Matéria</th>
+                <th>Nota 1</th>
+                <th>Nota 2</th>
+                <th>Média</th>
+                <th>Situação</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="tabela-notas-professor">
+            </tbody>
+    </table>
+    <br>
+    <button onclick="fazerLogout()" style="background-color: #cc0000;">Sair do Sistema</button>
 </div>
 
 <script>
-    const logado = JSON.parse(localStorage.getItem('suap_logged'));
-    if (!logado || logado.tipo !== 'professor') window.location.href = 'index.html';
-    else document.getElementById('user-display-name').innerText = logado.nome;
+    const API_URL = 'https://site-escola-ox6c.onrender.com/api/notas';
 
-    document.addEventListener("DOMContentLoaded", () => {
-        atualizarSelectAlunos();
-        atualizarTabelaProfessor();
-    });
-
-    async function atualizarSelectAlunos() {
-        const select = document.getElementById('prof-aluno-select');
-        const response = await fetch('https://site-escola-ox6c.onrender.com/api/alunos');
-        const alunos = await response.json();
-
-        if (alunos.length === 0) {
-            select.innerHTML = '<option value="">Nenhum aluno no SGBD</option>';
+    // Executa assim que a página abre para listar as notas existentes
+    window.onload = function() {
+        const user = JSON.parse(localStorage.getItem('suap_logged'));
+        if (!user || user.tipo !== 'professor') {
+            alert("Acesso negado! Faça login como professor.");
+            window.location.href = 'index.html';
             return;
         }
-        select.innerHTML = '';
-        alunos.forEach(aluno => {
-            select.innerHTML += `<option value="${aluno.nome}">${aluno.nome}</option>`;
-        });
+        carregarNotas();
+    };
+
+    async function carregarNotas() {
+        try {
+            const response = await fetch(API_URL);
+            const notas = await response.json();
+            
+            const tbody = document.getElementById('tabela-notas-professor');
+            tbody.innerHTML = '';
+
+            notas.forEach(nota => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${nota.aluno}</td>
+                    <td>${nota.materia}</td>
+                    <td>${nota.n1.toFixed(1)}</td>
+                    <td>${nota.n2.toFixed(1)}</td>
+                    <td>${nota.media.toFixed(1)}</td>
+                    <td style="color: ${nota.situacao === 'APROVADO' ? 'green' : 'red'}; font-weight: bold;">${nota.situacao}</td>
+                    <td><button onclick="apagarNota(${nota.id})" style="background-color: #ff3333; padding: 2px 8px;">🗑️</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error("Erro ao carregar notas:", e);
+        }
     }
 
     async function professorSalvarNota() {
-        const aluno = document.getElementById('prof-aluno-select').value;
-        const materia = document.getElementById('prof-materia').value.trim();
-        const n1 = parseFloat(document.getElementById('prof-n1').value);
-        const n2 = parseFloat(document.getElementById('prof-n2').value);
+        const aluno = document.getElementById('nota-aluno').value.trim();
+        const materia = document.getElementById('nota-materia').value.trim();
+        const n1 = document.getElementById('nota-n1').value;
+        const n2 = document.getElementById('nota-n2').value;
 
-        if (!aluno || !materia || isNaN(n1) || isNaN(n2)) return alert("Preencha todos os dados.");
+        if (!aluno || !materia || n1 === '' || n2 === '') {
+            return alert("Por favor, preencha todos os campos e notas.");
+        }
 
-        await fetch('https://site-escola-ox6c.onrender.com/api/notas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ aluno, materia, n1, n2 })
-        });
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    aluno,
+                    materia,
+                    n1: parseFloat(n1),
+                    n2: parseFloat(n2)
+                })
+            });
 
-        document.getElementById('prof-materia').value = '';
-        document.getElementById('prof-n1').value = '';
-        document.getElementById('prof-n2').value = '';
-        atualizarTabelaProfessor();
+            const dados = await response.json();
+
+            if (!response.ok) {
+                return alert(dados.erro || "Erro ao salvar a nota.");
+            }
+
+            alert(dados.mensagem || "Nota processada com sucesso!");
+            
+            // Limpa os campos do formulário
+            document.getElementById('nota-aluno').value = '';
+            document.getElementById('nota-materia').value = '';
+            document.getElementById('nota-n1').value = '';
+            document.getElementById('nota-n2').value = '';
+
+            // Atualiza a tabela na hora
+            carregarNotas();
+
+        } catch (e) {
+            alert("Erro de conexão com o servidor.");
+        }
     }
 
-    async function atualizarTabelaProfessor() {
-        const tabela = document.getElementById('tabela-professor');
-        tabela.innerHTML = '';
-        const response = await fetch('https://site-escola-ox6c.onrender.com/api/notas');
-        const notas = await response.json();
+    async function apagarNota(id) {
+        if (!confirm("Tem certeza que deseja apagar esta nota?")) return;
 
-        notas.forEach(item => {
-            tabela.innerHTML += `
-                <tr>
-                    <td>${item.aluno}</td>
-                    <td>${item.materia}</td>
-                    <td><strong>${item.media.toFixed(1)}</strong></td>
-                    <td><button class="btn-delete" onclick="deletarNota(${item.id})">🗑️</button></td>
-                </tr>
-            `;
-        });
-    }
-
-    async function deletarNota(id) {
-        if (!confirm("Tem a certeza que deseja apagar esta nota?")) return;
-        await fetch(`https://site-escola-ox6c.onrender.com/api/notas/${id}`, {
-            method: 'DELETE'
-        });
-        atualizarTabelaProfessor();
+        try {
+            const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                alert("Nota excluída!");
+                carregarNotas();
+            } else {
+                alert("Erro ao apagar nota.");
+            }
+        } catch (e) {
+            alert("Erro de conexão.");
+        }
     }
 
     function fazerLogout() {
