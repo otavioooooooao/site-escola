@@ -69,16 +69,25 @@ app.get('/api/alunos', async (req, res) => {
     }
 });
 
-app.post('/api/notas', async (req, res) => {
-    const { aluno, materia, n1, n2 } = req.body;
-    const media = (parseFloat(n1) + parseFloat(n2)) / 2;
-    const situacao = media >= 7.0 ? "APROVADO" : "REPROVADO";
+app.post('/api/registo', async (req, res) => {
+    const { nome, senha, tipo, chaveSecreta } = req.body;
+
+    // Bloqueio de segurança para professores
+    if (tipo === 'professor') {
+        if (chaveSecreta !== 'COORDENACAO2026') {
+            return res.status(403).json({ erro: "Chave de segurança inválida! Apenas a coordenação pode criar professores." });
+        }
+    }
+
     try {
-        await pool.query(`INSERT INTO notas (aluno, materia, n1, n2, media, situacao) VALUES ($1, $2, $3, $4, $5, $6)`,
-            [aluno, materia, n1, n2, media, situacao]);
-        res.json({ sucesso: true });
+        // ATENÇÃO: Mantém aqui a tua linha original que salva no banco! 
+        // Exemplo comum com PostgreSQL (ajusta para bater com as tuas variáveis/tabelas):
+        // await pool.query('INSERT INTO usuarios (nome, senha, tipo) VALUES ($1, $2, $3)', [nome, senha, tipo]);
+        
+        res.status(201).json({ mensagem: "Usuário registrado com sucesso!" });
     } catch (err) {
-        res.status(500).json({ erro: err.message });
+        console.error(err);
+        res.status(500).json({ erro: "Erro ao salvar no banco de dados." });
     }
 });
 

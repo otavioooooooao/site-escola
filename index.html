@@ -45,6 +45,12 @@
                     <option value="professor">Professor</option>
                 </select>
             </div>
+            
+            <div class="form-group" id="campo-chave-secreta" style="display: none;">
+                <label for="reg-chave" style="color: #ffcc00; font-weight: bold;">Chave de Segurança do Professor 🔑:</label>
+                <input type="password" id="reg-chave" placeholder="Digite a senha de coordenação">
+            </div>
+
             <button type="button" onclick="executarRegisto()">Finalizar Registo</button>
         </div>
     </div>
@@ -62,26 +68,42 @@
             document.getElementById('form-register').style.display = 'block';
             document.getElementById('btn-tab-login').classList.remove('active');
             document.getElementById('btn-tab-register').classList.add('active');
+            verificarTipoConta();
         }
     }
 
-    async function ejecutarRegisto() {
+    function verificarTipoConta() {
+        const tipo = document.getElementById('reg-tipo').value;
+        const campoChave = document.getElementById('campo-chave-secreta');
+        if (tipo === 'professor') {
+            campoChave.style.display = 'block';
+        } else {
+            campoChave.style.display = 'none';
+        }
+    }
+
+    document.getElementById('reg-tipo').addEventListener('change', verificarTipoConta);
+
+    async function executarRegisto() {
         const nome = document.getElementById('reg-user').value.trim();
         const senha = document.getElementById('reg-pass').value.trim();
         const tipo = document.getElementById('reg-tipo').value;
+        const chaveSecreta = document.getElementById('reg-chave') ? document.getElementById('reg-chave').value.trim() : '';
 
         if (!nome || !senha) return alert("Preencha todos os campos.");
+        if (tipo === 'professor' && !chaveSecreta) return alert("Professores precisam de inserir a Chave de Segurança!");
 
         try {
             const response = await fetch('https://site-escola-ox6c.onrender.com/api/registo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome, senha, tipo })
+                body: JSON.stringify({ nome, senha, tipo, chaveSecreta })
             });
             const dados = await response.json();
-            if (dados.erro) return alert(dados.erro);
+            if (!response.ok || dados.erro) return alert(dados.erro || "Erro no registo.");
             
             alert("Registado com sucesso no SGBD!");
+            if(document.getElementById('reg-chave')) document.getElementById('reg-chave').value = '';
             toggleAuthMode('login');
         } catch (e) { alert("Erro ao ligar ao servidor."); }
     }
